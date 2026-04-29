@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Report - {{ report_summary.timestamp }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #0056b3; }
+        .summary { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .summary-item { text-align: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; flex: 1; margin: 0 5px; }
+        .summary-passed { background-color: #d4edda; color: #155724; }
+        .summary-failed { background-color: #f8d7da; color: #721c24; }
+        .summary-total { background-color: #cfe2ff; color: #084298; }
+        .test-case { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        .test-case.passed { border-left: 5px solid #28a745; }
+        .test-case.failed { border-left: 5px solid #dc3545; }
+        .test-case h3 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
+        .test-case h3 span { font-size: 0.9em; padding: 3px 8px; border-radius: 3px; }
+        .test-case h3 .status-passed { background-color: #28a745; color: white; }
+        .test-case h3 .status-failed { background-color: #dc3545; color: white; }
+        pre { background-color: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .details { margin-top: 10px; padding-left: 20px; border-left: 2px solid #ccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API Test Report</h1>
+        <p><strong>Generated At:</strong> {{ report_summary.timestamp }}</p>
+
+        <div class="summary">
+            <div class="summary-item summary-total">
+                <h2>Total Tests</h2>
+                <p>{{ report_summary.total_tests }}</p>
+            </div>
+            <div class="summary-item summary-passed">
+                <h2>Passed</h2>
+                <p>{{ report_summary.passed_tests }}</p>
+            </div>
+            <div class="summary-item summary-failed">
+                <h2>Failed</h2>
+                <p>{{ report_summary.failed_tests }}</p>
+            </div>
+        </div>
+
+        {% if report_summary.failed_tests > 0 %}
+        <h2>Failed Test Cases ({{ report_summary.failed_tests }})</h2>
+        {% for result in test_results %}
+            {% if not result.passed %}
+            <div class="test-case failed">
+                <h3>
+                    {{ result.test_case_name }}
+                    <span class="status-failed">FAILED</span>
+                </h3>
+                <p><strong>Failure Reason:</strong> {{ result.failure_reason }}</p>
+                <div class="details">
+                    <h4>Request:</h4>
+                    <p>Method: <code>{{ result.execution_details.request_method }}</code></p>
+                    <p>URL: <code>{{ result.execution_details.request_url }}</code></p>
+                    {% if result.execution_details.request_body %}
+                    <p>Body:</p><pre>{{ result.execution_details.request_body | tojson(indent=2) }}</pre>
+                    {% endif %}
+
+                    <h4>Expected Response:</h4>
+                    <p>Status Code: <code>{{ result.expected_response.status_code }}</code></p>
+                    {% if result.expected_response.json_schema %}
+                    <p>JSON Schema:</p><pre>{{ result.expected_response.json_schema | tojson(indent=2) }}</pre>
+                    {% endif %}
+                    {% if result.expected_response.contains_text %}
+                    <p>Contains Text: <code>{{ result.expected_response.contains_text }}</code></p>
+                    {% endif %}
+
+                    <h4>Actual Response:</h4>
+                    <p>Status Code: <code>{{ result.execution_details.response_status_code }}</code></p>
+                    <p>Response Time: <code>{{ "%.2f" | format(result.execution_details.response_time_ms) }} ms</code></p>
+                    {% if result.execution_details.response_body %}
+                    <p>Body:</p><pre>{{ result.execution_details.response_body | tojson(indent=2) }}</pre>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
+
+        <h2>All Test Cases ({{ report_summary.total_tests }})</h2>
+        {% for result in test_results %}
+        <div class="test-case {% if result.passed %}passed{% else %}failed{% endif %}">
+            <h3>
+                {{ result.test_case_name }}
+                <span class="{% if result.passed %}status-passed{% else %}status-failed{% endif %}">{% if result.passed %}PASSED{% else %}FAILED{% endif %}</span>
+            </h3>
+            {% if not result.passed %}
+            <p><strong>Failure Reason:</strong> {{ result.failure_reason }}</p>
+            {% endif %}
+            <details>
+                <summary>View Details</summary>
+                <div class="details">
+                    <h4>Request:</h4>
+                    <p>Method: <code>{{ result.execution_details.request_method }}</code></p>
+                    <p>URL: <code>{{ result.execution_details.request_url }}</code></p>
+                    {% if result.execution_details.request_body %}
+                    <p>Body:</p><pre>{{ result.execution_details.request_body | tojson(indent=2) }}</pre>
+                    {% endif %}
+
+                    <h4>Expected Response:</h4>
+                    <p>Status Code: <code>{{ result.expected_response.status_code }}</code></p>
+                    {% if result.expected_response.json_schema %}
+                    <p>JSON Schema:</p><pre>{{ result.expected_response.json_schema | tojson(indent=2) }}</pre>
+                    {% endif %}
+                    {% if result.expected_response.contains_text %}
+                    <p>Contains Text: <code>{{ result.expected_response.contains_text }}</code></p>
+                    {% endif %}
+
+                    <h4>Actual Response:</h4>
+                    <p>Status Code: <code>{{ result.execution_details.response_status_code }}</code></p>
+                    <p>Response Time: <code>{{ "%.2f" | format(result.execution_details.response_time_ms) }} ms</code></p>
+                    {% if result.execution_details.response_body %}
+                    <p>Body:</p><pre>{{ result.execution_details.response_body | tojson(indent=2) }}</pre>
+                    {% endif %}
+                </div>
+            </details>
+        </div>
+        {% endfor %>
+    </div>
+</body>
+</html>
